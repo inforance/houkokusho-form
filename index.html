@@ -261,6 +261,7 @@
   border-radius: 12px; padding: 0 38px 0 15px; font-size: 16px; font-weight: 400; color: #9AA6A0;
   font-family: inherit; appearance: none; -webkit-appearance: none; }
 .meanwrap select.pick { border-color: #0A7A45; color: #141A17; }
+#x_kubun.empty { color: #AEB8B1; }
 /* 座席クラスもプルダウン。もとのボタンは裏で使うので隠すだけ */
 #e_segs .s-cls { display: none !important; }
 .clswrap { position: relative; margin: 0 0 10px; }
@@ -345,7 +346,7 @@ body { background: #fff; }
 
         <div class="xlab">出張区分</div>
         <select id="x_kubun">
-          <option value="">選んでください</option>
+          <option value="">出張区分を選ぶ</option>
           <option>近距離出張</option>
           <option>遠距離出張</option>
           <option>海外出張</option>
@@ -848,7 +849,8 @@ body { background: #fff; }
       '<button type="button" class="dfield empty h-period"></button>' +
       '<span class="mini">支払</span>' +
       '<div class="segb h-pay"></div>' +
-      '<input type="text" class="h-name" placeholder="ホテル名（ヒルトン大阪）">';
+      '<span class="mini h-namel">ホテル名</span>' +
+      '<input type="text" class="h-name" placeholder="ヒルトン大阪">';
     var pay = w.querySelector('.h-pay');
     segButtons(pay, PAY);
     setSeg(pay, '個人');
@@ -883,11 +885,18 @@ body { background: #fff; }
       fieldText(d);
     });
 
-    Array.prototype.forEach.call($('e_stays').children, function (w) {
+    Array.prototype.forEach.call($('e_stays').children, function (w, i) {
       var d = w.querySelector('.h-period');
       if (d.getAttribute('data-from')) return;
-      d.setAttribute('data-from', r.from);
-      d.setAttribute('data-to', r.to);
+      // 1件目は出張期間まるごと。2件目からは、前の宿泊が終わった日から出張の最終日まで
+      var from = r.from;
+      if (i > 0) {
+        var prev = $('e_stays').children[i - 1].querySelector('.h-period');
+        var pt = prev.getAttribute('data-to') || prev.getAttribute('data-from') || '';
+        if (pt) from = pt;
+      }
+      d.setAttribute('data-from', from);
+      d.setAttribute('data-to', (from > r.to) ? from : r.to);
       fieldText(d);
     });
   }
@@ -953,6 +962,13 @@ body { background: #fff; }
   var rMode = 'all';   // 書き方の既定は「まとめて報告」
   var rAi = 'off';   // AIによる申請サポート。'on' = 必要 / 'off' = 不要。既定は不要
 
+  /* 日ごとに報告するときの例文。日ごとに違う中身にする */
+  var DAY_EX = [
+    '株式会社インフォランスを訪問し、担当者と節税提案について打合せ。\n役員報酬の見直しと旅費規程の整備について説明を受けた。',
+    '前日の提案について社内で再検討し、来期からの導入で合意した。\n必要書類は今月中にこちらから提出することとなった。',
+    '現地の支店に立ち寄り、月次資料の受け渡し方法を確認した。'
+  ];
+
   function buildReport() {
     $('title').textContent = '出張報告';
 
@@ -969,8 +985,10 @@ body { background: #fff; }
     list.forEach(function (d, i) {
       var box = document.createElement('div');
       box.className = 'day';
+      var ex = DAY_EX[i] || 'この日にされたことをご記入ください';
       box.innerHTML = '<div class="day-h">' + (d ? md(d) : ('その日にされたこと ' + (i + 1))) + '</div>' +
-                      '<textarea placeholder="株式会社インフォランスを訪問し、担当者と節税提案について打合せ。&#10;役員報酬の見直しと旅費規程の整備について説明を受け、来期からの導入で合意。&#10;必要書類は今月中にこちらから提出することになった。"></textarea>';
+                      '<textarea></textarea>';
+      box.querySelector('textarea').placeholder = ex;
       box.setAttribute('data-d', d ? md(d) : '');
       $('r_days').appendChild(box);
     });
@@ -1868,6 +1886,8 @@ body { background: #fff; }
       card.setAttribute('data-optin', '1'); optin = true;
     }
     nm.classList.toggle('hide', !(personal || optin));
+    var nml = card.querySelector('.h-namel');
+    if (nml) nml.classList.toggle('hide', !(personal || optin));
     var opt = card.querySelector('.h-opt');
     if (opt) {
       opt.classList.toggle('hide', personal);
@@ -2001,9 +2021,12 @@ body { background: #fff; }
   function start() {
     var k = $('x_kubun');
     if (!k) return;
+    function kubunPaint() { k.classList.toggle('empty', !k.value); }
     k.onchange = function () {
       $('x_kaigai').classList.toggle('hide', k.value !== '海外出張');
+      kubunPaint();
     };
+    kubunPaint();
     ensure($('x_mitsu'), '見積');
     if ($('e_photo')) ensure($('e_photo'), '証憑');
     if ($('r_photo')) ensure($('r_photo'), '報告');
@@ -2064,6 +2087,9 @@ body { background: #fff; }
       var on = c.querySelector('.s-mean .on');
       var m = on ? on.getAttribute('data-v') : '';
       if (['飛行機', '新幹線'].indexOf(m) < 0) return;
+      // 便名を聞いているときだけ確かめる。法人・支払なしは精算書に出ないので聞いていない
+      var air = c.querySelector('.s-air');
+      if (air && air.classList.contains('hide')) return;
       var nm = c.querySelector('.s-name');
       if (nm && !(nm.value || '').trim()) { nm.classList.add('need'); miss.push('移動' + (i + 1)); }
     });
