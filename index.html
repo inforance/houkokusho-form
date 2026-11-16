@@ -163,7 +163,7 @@
 #expense input[type=text], #expense .dfield, #expense select { min-height: 46px; font-size: 16px; border-radius: 11px; padding-top: 9px; padding-bottom: 9px; }
 #report input[type=text], #report textarea { font-size: 16px; border-radius: 12px; padding: 13px 15px; }
 #report textarea { min-height: 120px; line-height: 1.75; }
-#report textarea#r_all { min-height: 148px; }
+#report textarea#r_all { min-height: 250px; }
 /* 例文は、打ち込む文字より小さくして、例だと分かるようにする */
 #report textarea::placeholder { font-size: 13.5px; line-height: 1.7; }
 #report input[type=text] { min-height: 46px; padding-top: 9px; padding-bottom: 9px; }
@@ -368,17 +368,14 @@ body { background: #fff; }
 
       <span class="fl" id="r_bodylabel">出張内容</span>
       <div id="r_days" class="hide"></div>
-      <textarea id="r_all" placeholder="〇〇株式会社を訪問し、△△部長と新単価について打合せ&#10;□□工場では現場を確認し、工程の遅れと原因を確認&#10;帰りに△△商事へ立ち寄り、次回の納期を調整"></textarea>
-
-      <span class="fl">決まったこと・成果</span>
-      <textarea id="r_result" placeholder="新単価は4月1日からの適用で合意&#10;見積りは今月中に先方から受領&#10;次回は現場で仕様を再確認（11月上旬）"></textarea>
+      <textarea id="r_all" placeholder="株式会社インフォランスを訪問し、担当者と節税提案について打合せ。&#10;役員報酬の見直しと旅費規程の整備について説明を受け、来期からの導入で合意した。&#10;必要書類は今月中にこちらから提出することになった。"></textarea>
 
       <span class="fl">AIによる申請サポート</span>
       <div class="seg2 pill2" id="r_ai">
         <div data-v="on">必要</div>
         <div class="on" data-v="off">不要</div>
       </div>
-      <div class="hint" style="text-align:left;margin-top:6px">
+      <div class="hint" style="text-align:left;margin-top:6px" id="r_aihint">
         ＊より詳細な出張報告を作成するために、AIが質問します。
       </div>
 
@@ -937,7 +934,7 @@ body { background: #fff; }
       var box = document.createElement('div');
       box.className = 'day';
       box.innerHTML = '<div class="day-h">' + (d ? md(d) : ('その日にされたこと ' + (i + 1))) + '</div>' +
-                      '<textarea placeholder="〇〇株式会社を訪問。△△部長と新単価について打合せ&#10;□□工場で現場を確認。工程の遅れと原因を確認"></textarea>';
+                      '<textarea placeholder="株式会社インフォランスを訪問し、担当者と節税提案について打合せ。&#10;役員報酬の見直しと旅費規程の整備について説明を受け、来期からの導入で合意。&#10;必要書類は今月中にこちらから提出することになった。"></textarea>';
       box.setAttribute('data-d', d ? md(d) : '');
       $('r_days').appendChild(box);
     });
@@ -951,7 +948,13 @@ body { background: #fff; }
         $('r_days').classList.toggle('hide', !day);
         $('r_all').classList.toggle('hide', day);
         $('r_bodylabel').textContent = day ? '日ごとの出張内容' : '出張内容';
+        aiHint();
       };
+    });
+
+    $('r_all').addEventListener('input', aiHint);
+    Array.prototype.forEach.call($('r_days').querySelectorAll('textarea'), function (x) {
+      x.addEventListener('input', aiHint);
     });
 
     // AIによる申請サポート。1件ごとに必要／不要を選ぶ
@@ -960,23 +963,55 @@ body { background: #fff; }
         Array.prototype.forEach.call($('r_ai').children, function (x) { x.classList.remove('on'); });
         b.classList.add('on');
         rAi = b.getAttribute('data-v');
-        var note = $('r_note');
-        if (note) {
-          note.textContent = (rAi === 'on')
-            ? '送信後、足りないところだけLINEでお伺いします。'
-            : 'いただいた内容だけで報告書をお作りします。';
-        }
+        aiHint();
       };
     });
 
     $('report').classList.remove('hide');
   }
 
+  /* 十分に書かれているか。空白を除いた字数で見る */
+  var ENOUGH = 300;
+  function reportBody() {
+    var body = [];
+    if (rMode === 'day') {
+      Array.prototype.forEach.call($('r_days').children, function (box) {
+        var t = esc(box.querySelector('textarea').value);
+        if (!t) return;
+        var d = box.getAttribute('data-d');
+        body.push(d ? '【' + d + '】\n' + t : t);
+      });
+    } else {
+      var a = esc($('r_all').value);
+      if (a) body.push(a);
+    }
+    return body;
+  }
+  function enough() {
+    return reportBody().join('\n').replace(/\s/g, '').length >= ENOUGH;
+  }
+  /* AIの説明書き。十分に書けていれば、質問しないと伝える */
+  function aiHint() {
+    var h = $('r_aihint');
+    var ask = (rAi === 'on') && !enough();   // 本当に質問するのは、必要かつ足りないときだけ
+    if (h) {
+      h.textContent = (rAi === 'on' && !ask)
+        ? '＊十分に書いていただいているので、質問はしません。'
+        : '＊より詳細な出張報告を作成するために、AIが質問します。';
+    }
+    var note = $('r_note');
+    if (note) {
+      note.textContent = ask
+        ? '送信後、足りないところだけLINEでお伺いします。'
+        : 'いただいた内容だけで報告書をお作りします。';
+    }
+  }
+
   function reportText() {
     var L = ['【出張報告】'];
     (window.__rTail || function () { return []; })().forEach(function (s) { L.push(s); });
-    // 「不要」のときは目印を付ける。受け取った側が質問を飛ばす
-    if (rAi === 'off') L.push('※質問不要');
+    // 「不要」のとき、または十分に書かれているときは目印を付ける。受け取った側が質問を飛ばす
+    if (rAi === 'off' || enough()) L.push('※質問不要');
     var body = [];
     if (rMode === 'day') {
       Array.prototype.forEach.call($('r_days').children, function (box) {
@@ -992,9 +1027,6 @@ body { background: #fff; }
     if (!body.length) return { err: '出張内容をご記入ください。' };
     L.push('出張内容：');
     L.push(body.join('\n'));
-
-    var r = esc($('r_result').value);
-    if (r) L.push('成果：' + r);
 
     return { text: L.join('\n') };
   }
@@ -2067,7 +2099,6 @@ body { background: #fff; }
       var ds = $('r_days');
       if (ds) Array.prototype.forEach.call(ds.querySelectorAll('textarea'), function (x) { if (filled(x)) body = true; });
       out.push(body);
-      out.push(filled($('r_result')));
       return out;
     }
     return out;
