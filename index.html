@@ -1071,8 +1071,14 @@ body { background: #fff; }
 
   /* ============ 起動 ============ */
   var PREVIEW = /[?&]preview=1/.test(location.search);   // PCでの見た目確認用（送信しない）
-  (PREVIEW ? Promise.resolve() : liff.init({ liffId: LIFF_ID })).then(function () {
-    if (!PREVIEW && !liff.isInClient()) { show('このページはLINEアプリの中で開いてください。'); return; }
+  var IN_LINE = false;   // LINEの中で開いているか。PCから開くと外部ブラウザになる
+  (PREVIEW ? Promise.resolve()
+           : liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true })).then(function () {
+    if (!PREVIEW) {
+      try { IN_LINE = !!liff.isInClient(); } catch (e) { IN_LINE = false; }
+      // 外のブラウザ（PCのLINEから開いたときなど）は、ログインしてもらってから使う
+      if (!IN_LINE && !liff.isLoggedIn()) { liff.login(); return; }
+    }
     setupCal();
     if (mode === 'report') buildReport(); else buildExpense();
     $('form').classList.remove('hide');
@@ -1085,14 +1091,21 @@ body { background: #fff; }
     /* 受付先が受け取れないときの逃げ道：トークに申請文をそのまま流す。
        利用者自身のLINEから送るので、会社のLINEの送信通数を使わない。 */
     function viaTalk(text, report) {
+      // トークへ流せるのはLINEの中だけ。外のブラウザでは使えない
+      if (!IN_LINE) { failed('送信先につながりませんでした'); return; }
       var ms = [{ type: 'text', text: text }];
       if (report) ms.push({ type: 'text', text: report });
       liff.sendMessages(ms)
-        .then(function () { liff.closeWindow(); })
+        .then(function () { done(); })
         .catch(failed);
     }
 
-    function bye2() { try { liff.closeWindow(); } catch (e) { show('この画面を閉じてください。'); } }
+    /* LINEの中なら画面を閉じる。外のブラウザでは閉じられないので、そう伝える */
+    function done(msg) {
+      if (IN_LINE) { try { liff.closeWindow(); return; } catch (e) {} }
+      show(msg || '送信しました。この画面は閉じていただいて大丈夫です。');
+    }
+    function bye2() { done('この画面は閉じていただいて大丈夫です。'); }
 
     /* 旅費申請のあと、続けて出張報告を書けるようにする */
     var moved = false;
@@ -1162,7 +1175,7 @@ body { background: #fff; }
       $('send').textContent = '送信中…';
       var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);   // 二重送信よけの目印
       var closed = false;
-      function bye() { if (!closed) { closed = true; liff.closeWindow(); } }
+      function bye() { if (!closed) { closed = true; done(); } }
       // 受付の返事は待たない。カードはトークに届くので、ここで待たせない。
       // つながらない失敗は1秒以内に分かるので、1.2秒だけ待つ。
       var timer = setTimeout(bye, 1200);
@@ -1519,7 +1532,8 @@ body { background: #fff; }
     /* LINEのアカウント名を報告者の既定にする */
     function grabName() {
       try {
-        if (!window.liff || !liff.isInClient || !liff.isInClient()) return;
+        if (!window.liff || !liff.getProfile) return;
+        try { if (!liff.isInClient() && !liff.isLoggedIn()) return; } catch (e) { return; }
         liff.getProfile().then(function (p) {
           var n = (p && p.displayName || '').trim();
           if (!n) return;
