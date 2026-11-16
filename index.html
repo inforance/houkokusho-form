@@ -421,15 +421,6 @@ body { background: #fff; }
     </div>
 
     <!-- 旅費申請を送ったあとに出す -->
-    <div class="hide" id="next">
-      <div class="donebox">
-        <b>続けて出張報告も書けます。</b>
-        <p>いま書いていただくと、旅費精算書と出張報告書を<br>ひとまとめにしてお作りします。<br>あとからLINEで書いていただいても大丈夫です。</p>
-      </div>
-      <button type="button" class="submit" id="goReport">続けて出張報告を書く</button>
-      <button type="button" class="add" id="later">あとで書く（旅費申請だけ送る）</button>
-    </div>
-
     <button type="button" class="submit" id="send">この内容で送る</button>
     <div class="hint" id="r_note">いただいた内容だけで報告書をお作りします。</div>
   </main>
@@ -1128,15 +1119,10 @@ body { background: #fff; }
     /* 旅費申請のあと、続けて出張報告を書けるようにする */
     var moved = false;
     function toNext() {
-      if (moved) return;
       moved = true;
       var rg = tripRange();
       q.from = rg.from; q.to = rg.to; q.place = esc($('e_place').value);
-      $('expense').classList.add('hide');
-      $('send').classList.add('hide');
-      if ($('r_note')) $('r_note').classList.add('hide');
-      $('next').classList.remove('hide');
-      window.scrollTo(0, 0);
+      toReport();   // 間の画面は挟まない。そのまま出張報告へ
     }
 
     // 直し始めたら、自動入力の色と赤枠を消す
@@ -1144,7 +1130,6 @@ body { background: #fff; }
 
     var reportBuilt = false;
     function toReport() {
-      $('next').classList.add('hide');
       $('expense').classList.add('hide');
       mode = 'report';
       if (!reportBuilt) { buildReport(); reportBuilt = true; }
@@ -1161,16 +1146,18 @@ body { background: #fff; }
     }
     /* 旅費申請の画面に戻る。送るのは最後なので、ここでは送るボタンを出さない */
     function toExpense() {
+      mode = 'expense';
       $('report').classList.add('hide');
+      if ($('chat')) $('chat').classList.add('hide');
       $('expense').classList.remove('hide');
       $('title').textContent = '旅費申請';
       $('ctx').classList.add('hide');
-      $('send').classList.add('hide');
+      $('send').disabled = false;
+      $('send').textContent = 'この内容で送る';
+      $('send').classList.remove('hide');
       if ($('r_note')) $('r_note').classList.add('hide');
-      $('next').classList.remove('hide');
       window.scrollTo(0, 0);
     }
-    $('goReport').onclick = toReport;
     $('ctx').onclick = function () { if ($('ctx').classList.contains('back')) toExpense(); };
 
     var sending = false;
@@ -1218,12 +1205,6 @@ body { background: #fff; }
           viaTalk(text, report);   // 受付先につながらないとき
         });
     }
-
-    $('later').onclick = function () {
-      if (!pending) { bye2(); return; }
-      if (PREVIEW) { console.log(pending); show('プレビューのため送信していません。'); return; }
-      sendText(pending);   // 旅費申請だけ送る
-    };
 
     function photoBusy() {
       return document.querySelectorAll('.phwrap .phs .t:not(.done):not(.ng)').length;
