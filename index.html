@@ -198,6 +198,24 @@
 .phbtn { width: 100%; height: 42px; border: 1.5px dashed #C9D4CE; border-radius: 11px; background: #fff;
   color: #0A7A45; font-size: 13px; font-weight: 700; font-family: inherit;
   display: flex; align-items: center; justify-content: center; gap: 7px; }
+/* ページの中でAIが聞くとき */
+#chat .qa { display: flex; flex-direction: column; gap: 11px; margin-bottom: 4px; }
+#chat .q { background: var(--brand-lt); border-radius: 12px 12px 12px 4px; padding: 11px 13px; font-size: 14.5px; }
+#chat .q .who { display: block; font-size: 10.5px; font-weight: 700; color: var(--brand); letter-spacing: .08em; margin-bottom: 2px; }
+#chat .a { background: var(--white); border: 1px solid var(--line); border-radius: 12px 12px 4px 12px;
+  padding: 11px 13px; font-size: 14.5px; align-self: flex-end; max-width: 88%; white-space: pre-wrap; }
+#chat .a.skip { color: var(--dim); }
+#chat .ng { color: #C0392B; font-size: 13px; }
+#chat .think { display: flex; align-items: center; gap: 7px; color: var(--dim); font-size: 13px; padding: 2px; }
+#chat .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); animation: cbl 1s infinite; }
+#chat .dot:nth-child(2) { animation-delay: .15s; } #chat .dot:nth-child(3) { animation-delay: .3s; }
+@keyframes cbl { 0%,100% { opacity: .25 } 50% { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { #chat .dot { animation: none; opacity: .6 } }
+#chat #c_ans { min-height: 84px; }
+#chat #c_out { min-height: 200px; background: var(--bg); line-height: 1.8; }
+#chat .cchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+#chat .cchips button { border: none; background: var(--brand-lt); color: var(--brand); border-radius: 14px;
+  padding: 6px 12px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }
 .phs { display: block; }
 .phs .t { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-top: 6px;
   border: 1px solid #E4E8E6; border-radius: 9px; background: #fff; }
@@ -381,6 +399,24 @@ body { background: #fff; }
 
       <span class="fl">写真</span>
       <div class="phwrap" id="r_photo" data-btn="写真を添付"></div>
+    </div>
+
+    <!-- AIサポート「必要」のとき、この画面の中で聞く -->
+    <div id="chat" class="hide">
+      <div class="qa" id="c_qa"></div>
+      <div id="c_ask" class="hide">
+        <span class="fl">答え</span>
+        <textarea id="c_ans" placeholder="ここに書いてください"></textarea>
+        <div class="cchips hide" id="c_chips"></div>
+        <button type="button" class="submit" id="c_next">答える</button>
+        <button type="button" class="add" id="c_skip">わからない・特になし</button>
+      </div>
+      <div id="c_done" class="hide">
+        <span class="fl">できあがった報告　<em>直せます</em></span>
+        <textarea id="c_out"></textarea>
+        <button type="button" class="submit" id="c_send">この内容で送る</button>
+        <button type="button" class="add" id="c_again">質問をやり直す</button>
+      </div>
     </div>
 
     <!-- 旅費申請を送ったあとに出す -->
@@ -1187,6 +1223,7 @@ body { background: #fff; }
       }
       var rr = reportText();
       if (rr.err) { alert(rr.err); return; }
+      if (rAi === 'on' && !enough()) { chatStart(); return; }   // ページの中で聞く
       if (PREVIEW) {
         console.log((pending ? pending + '\n\n' : '') + rr.text);
         show('プレビューのため送信していません。');
@@ -1195,6 +1232,153 @@ body { background: #fff; }
       if (pending) sendText(pending, rr.text);   // 旅費申請＋出張報告を1回で
       else sendText(rr.text);                    // LINEから報告だけ開いたとき
     }
+
+    /* ===== ページの中でAIが聞く ===== */
+    var chat = [];   // [{role:'ai'|'user', text:''}]
+
+    function chatBox() { return $('c_qa'); }
+    function chatAdd(cls, text) {
+      var d = document.createElement('div');
+      d.className = cls;
+      if (cls === 'q') d.innerHTML = '<span class="who">AI</span>';
+      d.appendChild(document.createTextNode(text));
+      chatBox().appendChild(d);
+      try { d.scrollIntoView({ block: 'end', behavior: 'smooth' }); } catch (e) {}
+      return d;
+    }
+    function chatWait() {
+      var d = document.createElement('div');
+      d.className = 'think';
+      d.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+      d.appendChild(document.createTextNode('　考えています'));
+      chatBox().appendChild(d);
+      $('c_ask').classList.add('hide');
+      try { d.scrollIntoView({ block: 'end', behavior: 'smooth' }); } catch (e) {}
+      return d;
+    }
+    function chatChips(list) {
+      var box = $('c_chips');
+      box.innerHTML = '';
+      box.classList.toggle('hide', !(list && list.length));
+      (list || []).forEach(function (t) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = t;
+        b.onclick = function () { $('c_ans').value = t; };
+        box.appendChild(b);
+      });
+    }
+    function chatBody() {
+      if (rMode === 'day') {
+        return Array.prototype.map.call($('r_days').querySelectorAll('textarea'), function (x) {
+          return (x.value || '').trim();
+        }).filter(String).join('\n');
+      }
+      return ($('r_all').value || '').trim();
+    }
+    /* 受け側へ聞きに行く。PCの確認用のときは、仮の質問で動かす */
+    function chatPost(finish, ok) {
+      if (PREVIEW) {
+        var qs = ['どなたとお会いになりましたか。', 'そこでは、どのような話が出ましたか。'];
+        var n = chat.filter(function (h) { return h.role === 'ai'; }).length;
+        setTimeout(function () {
+          if (!finish && n < qs.length) { ok({ ok: true, ask: qs[n] }); return; }
+          ok({ ok: true, done: true, body: '■目的\n訪問先との打合せ\n\n■内容\n' + chatBody() +
+            '\n\n■成果\n特段の決定事項なし。\n\n今後の取引に向けた有意義な打合せとなった。' });
+        }, 1200);
+        return;
+      }
+      var tk = '';
+      try { tk = liff.getAccessToken() || ''; } catch (e) {}
+      var died = false;
+      var timer = setTimeout(function () { died = true; ok(null); }, 90000);
+      fetch(EXEC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ type: 'ai_chat', accessToken: tk, ch: chParam(),
+                               expense: pending, body: chatBody(), history: chat, finish: !!finish })
+      }).then(function (r) { return r.json(); })
+        .then(function (j) { if (died) return; clearTimeout(timer); ok(j); })
+        .catch(function () { if (died) return; clearTimeout(timer); ok(null); });
+    }
+    /* うまくいかないときは、これまで通りLINEでお伺いする形に戻す */
+    function chatGiveUp() {
+      chatAdd('ng', 'うまく聞き取れませんでした。このまま送ります。');
+      setTimeout(function () {
+        var rr = reportText();
+        if (rr.err) { alert(rr.err); return; }
+        if (pending) sendText(pending, rr.text); else sendText(rr.text);
+      }, 900);
+    }
+    function chatTurn(finish) {
+      var w = chatWait();
+      chatPost(finish, function (j) {
+        w.remove();
+        if (!j || !j.ok) { chatGiveUp(); return; }
+        if (j.done) {
+          var out = $('c_out');
+          out.value = String(j.body || '');
+          $('c_ask').classList.add('hide');
+          $('c_done').classList.remove('hide');
+          out.style.height = 'auto';
+          out.style.height = (out.scrollHeight + 4) + 'px';
+          return;
+        }
+        chat.push({ role: 'ai', text: String(j.ask || '') });
+        chatAdd('q', String(j.ask || ''));
+        chatChips(j.chips);
+        $('c_ans').value = '';
+        $('c_ask').classList.remove('hide');
+        try { $('c_ans').focus(); } catch (e) {}
+      });
+    }
+    function chatStart() {
+      chat = [];
+      $('c_qa').innerHTML = '';
+      $('c_done').classList.add('hide');
+      $('report').classList.add('hide');
+      $('send').classList.add('hide');
+      if ($('r_note')) $('r_note').classList.add('hide');
+      $('chat').classList.remove('hide');
+      chatAdd('a', chatBody());
+      chatTurn(false);
+    }
+    function chatAnswer(text, skipped) {
+      chatAdd('a' + (skipped ? ' skip' : ''), text);
+      chat.push({ role: 'user', text: skipped ? '特になし' : text });
+      chatChips([]);
+      chatTurn(false);
+    }
+    $('c_next').onclick = function () {
+      var t = ($('c_ans').value || '').trim();
+      if (!t) { try { $('c_ans').focus(); } catch (e) {} return; }
+      chatAnswer(t, false);
+    };
+    $('c_skip').onclick = function () { chatAnswer('（特になし）', true); };
+    $('c_again').onclick = function () {
+      $('c_done').classList.add('hide');
+      chat = [];
+      $('c_qa').innerHTML = '';
+      chatAdd('a', chatBody());
+      chatTurn(false);
+    };
+    $('c_out').addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight + 4) + 'px';
+    });
+    /* できあがった文を、そのまま送る。AIにはもう触らせない */
+    $('c_send').onclick = function () {
+      var t = ($('c_out').value || '').trim();
+      if (!t) return;
+      var L = ['【出張報告】'];
+      (window.__rTail || function () { return []; })().forEach(function (x) { L.push(x); });
+      L.push('※質問不要');
+      L.push('出張内容：');
+      L.push(t);
+      var rp = L.join('\n');
+      if (PREVIEW) { console.log((pending ? pending + '\n\n' : '') + rp); show('プレビューのため送信していません。'); return; }
+      if (pending) sendText(pending, rp); else sendText(rp);
+    };
 
     /* 出張報告を書かずに画面を閉じられたときは、旅費申請だけ届くようにする */
     window.addEventListener('pagehide', function () {
