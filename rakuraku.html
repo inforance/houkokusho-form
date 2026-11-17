@@ -140,7 +140,7 @@
   /* 支払は小さなボタンで横に並べる */
   .seg.pay{display:inline-flex;gap:6px;border:none;background:none;border-radius:0;overflow:visible;width:auto}
   .seg.pay button{flex:none;border:1px solid var(--line);background:var(--white);color:#56655C;
-                  border-radius:15px;padding:5px 15px;font-size:13px;line-height:1.5}
+                  border-radius:14px;padding:3px 0;width:5.2em;text-align:center;font-size:12px;line-height:1.5}
   .seg.pay button+button{border-left:1px solid var(--line)}
   .seg.pay button.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
 
@@ -162,6 +162,31 @@
   .ph-chip.ok .st{color:#0A7A45;font-weight:700}
   .ph-chip.ng .st{color:#C0392B;font-weight:700}
   .ph-chip .x{border:none;background:none;color:#8A9A90;font-size:17px;line-height:1;cursor:pointer;padding:0 1px;font-family:inherit}
+
+  /* 「見出し｜入力」を横1行に並べて、縦に伸ばさない */
+  .hrow{display:flex;align-items:flex-start;gap:8px;margin-top:8px}
+  .hrow>.fl{flex:none;width:4.6em;margin:0;padding-top:11px;line-height:1.35}
+  .hrow>.hlist{flex:1;min-width:0}
+  .hrow .who{margin-bottom:5px}
+  .hrow .who:last-child{margin-bottom:0}
+  .hrow>.hadd{flex:none;margin:0;padding:10px 0 0;font-size:12.5px;white-space:nowrap}
+  .people{padding:10px 12px}
+  .people .hrow:first-child{margin-top:0}
+  .row-b>.hrow:first-of-type{margin-top:12px}
+  .l-pay.hrow{align-items:center;margin-top:9px}
+  .l-pay.hrow>.fl{padding-top:0;width:3.4em}
+  .r-billbox.hrow>.fl{padding-top:4px}
+  /* 入力欄を少し低く（46px → 40px） */
+  input[type=text],select,.dfield{padding-top:7px;padding-bottom:7px}
+  .duo>div>.fl{margin-top:9px}
+  .optadd{padding:6px}
+  .rt{padding:7px;margin-top:12px}
+  .ph-list:empty{margin:0}
+  .r-addph{margin-top:2px}
+  /* 件数の表示は出さない */
+  #tally{display:none !important}
+  /* 仕事内容は広めに */
+  .r-work{min-height:130px}
 </style>
 </head>
 <body>
@@ -174,12 +199,16 @@
   <!-- 入力画面 -->
   <main class="hide" id="form">
     <div class="people" id="people">
-      <span class="fl">会社名</span>
-      <div class="r-cos"></div>
-      <button type="button" class="pill" id="p_addco">＋ 会社を追加</button>
-      <span class="fl">出張者</span>
-      <div class="r-whos"></div>
-      <button type="button" class="pill" id="p_addwho">＋ 出張者を追加</button>
+      <div class="hrow">
+        <span class="fl">会社名</span>
+        <div class="r-cos hlist"></div>
+        <button type="button" class="pill hadd" id="p_addco" aria-label="会社を追加">＋追加</button>
+      </div>
+      <div class="hrow">
+        <span class="fl">出張者</span>
+        <div class="r-whos hlist"></div>
+        <button type="button" class="pill hadd" id="p_addwho" aria-label="出張者を追加">＋追加</button>
+      </div>
     </div>
     <div class="tally" id="tally"><b>今回の報告　<em id="t_n">0</em>件</b></div>
     <div id="rows"></div>
@@ -211,15 +240,19 @@
         <button type="button" class="pill r-addwho">＋ 出張者を追加</button>
       </div>
 
-      <span class="fl">出張先</span>
-      <input type="text" class="r-place" placeholder="品川／ゴルフ場名／現場名">
+      <div class="hrow">
+        <span class="fl">出張先</span>
+        <div class="hlist"><input type="text" class="r-place" placeholder="品川／ゴルフ場名"></div>
+      </div>
 
-      <span class="fl">出張日</span>
-      <button type="button" class="dfield empty r-dates"></button>
+      <div class="hrow">
+        <span class="fl">出張日</span>
+        <div class="hlist"><button type="button" class="dfield empty r-dates"></button></div>
+      </div>
 
-      <div class="r-billbox hide">
-        <span class="fl">交通費の請求先</span>
-        <select class="r-bill empty"></select>
+      <div class="r-billbox hrow hide">
+        <span class="fl">交通費の<br>請求先</span>
+        <div class="hlist"><select class="r-bill empty"></select></div>
       </div>
 
       <span class="fl">移動手段</span>
@@ -229,7 +262,7 @@
       <span class="fl">仕事内容</span>
       <textarea class="r-work" placeholder="〇〇社との打合せ、現場の立会い　など"></textarea>
 
-      <span class="fl">写真</span>
+      <span class="fl">写真添付</span>
       <div class="ph-list r-phlist"></div>
       <button type="button" class="pill r-addph">📎　写真を追加</button>
       <input type="file" class="r-file" accept="image/*" multiple hidden>
@@ -273,7 +306,7 @@
         <button type="button" class="dfield empty l-date"></button>
       </div>
     </div>
-    <div class="l-pay hide">
+    <div class="l-pay hrow hide">
       <span class="fl">支払</span>
       <div class="seg pay"><button type="button" class="on" data-v="個人">個人</button><button type="button" data-v="法人">法人</button><button type="button" data-v="支払なし">支払なし</button></div>
     </div>
@@ -291,11 +324,9 @@
       </div>
     </div>
     <div class="l-route hide">
-      <span class="fl">発着</span>
-      <div class="two">
-        <input type="text" class="l-from" placeholder="発（羽田）">
-        <span>→</span>
-        <input type="text" class="l-to" placeholder="着（伊丹）">
+      <div class="duo">
+        <div><span class="fl">発</span><input type="text" class="l-from" placeholder="羽田"></div>
+        <div><span class="fl">着</span><input type="text" class="l-to" placeholder="伊丹"></div>
       </div>
       <div class="l-chips hide"><span class="chips-l">最近使った場所（タップで入力）</span><div class="chips"></div></div>
     </div>
@@ -341,8 +372,8 @@
     '新幹線': ['自由席', '指定席', 'グリーン', 'グランクラス']
   };
   var NAME_PH = { '飛行機': 'JAL〇〇便', '新幹線': 'のぞみ〇〇号' };
-  var FROM_PH = { '飛行機': ['発（羽田）', '着（伊丹）'], '新幹線': ['発（東京）', '着（新大阪）'],
-                  '在来線': ['発（品川）', '着（新宿）'], '車': ['発（自宅）', '着（現場）'] };
+  var FROM_PH = { '飛行機': ['羽田', '伊丹'], '新幹線': ['東京', '新大阪'],
+                  '在来線': ['品川', '新宿'], '車': ['自宅', '現場'] };
 
   var $ = function (id) { return document.getElementById(id); };
   var val = function (s) { return String(s == null ? '' : s).trim(); };
@@ -819,27 +850,20 @@
 
   /* ---------- 一括報告を楽にする ---------- */
 
-  /* 畳んだときの1行。日付・出張先・移動、2行目に会社と仕事内容 */
+  /* 畳んだときの1行。「出張日：11月19日・20日　品川」、2行目に仕事内容 */
   function summarize(row) {
     var dates = getDates(row.querySelector('.r-dates'));
     var place = val(row.querySelector('.r-place').value);
-    var means = [];
-    each(row.querySelector('.r-legs').children, function (w) {
-      var m = segVal(w.querySelector('.l-mean'));
-      if (m) means.push(m + '／' + segVal(w.querySelector('.pay')));
-    });
-    // 11/11・13・21（3件）。同じ月は日だけ並べる。多いときは先頭5日まで
+    // 同じ月は日だけ並べる。多いときは先頭5日まで
     var d = '', lastM = '';
     dates.slice(0, 5).forEach(function (iso, i) {
       var p = iso.split('-'), m = String(Number(p[1])), day = String(Number(p[2]));
-      d += (i ? '・' : '') + (m === lastM ? day : m + '/' + day);
+      d += (i ? '・' : '') + (m === lastM ? day + '日' : m + '月' + day + '日');
       lastM = m;
     });
-    if (dates.length > 5) d += ' ほか' + (dates.length - 5) + '件';
-    if (dates.length > 1) d += '（' + dates.length + '件）';
+    if (dates.length > 5) d += ' ほか' + (dates.length - 5) + '日';
     var miss = '<span class="s-miss">';
-    var line1 = (d || miss + '日付なし</span>') + '　' + (place ? esc(place) : miss + '出張先なし</span>') +
-                (means.length ? '　' + esc(means.filter(function (v, i, a) { return a.indexOf(v) === i; }).join('・')) : '');
+    var line1 = '出張日：' + (d || miss + '日付なし</span>') + '　' + (place ? esc(place) : miss + '出張先なし</span>');
     var work = val(row.querySelector('.r-work').value).split('\n')[0];
     var line2 = work ? esc(work) : miss + '仕事内容なし</span>';
     row.querySelector('.s-1').innerHTML = line1;
