@@ -65,6 +65,8 @@
   /* 自動で入った欄（さわると元の色に戻る） */
   .auto,.seg.auto{background:#FFF6D8 !important}
   /* 往復ボタン */
+  .optadd{width:100%;margin-top:8px;border:1px dashed var(--line);background:var(--white);color:var(--dim);
+          border-radius:10px;padding:8px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer}
   .rt{width:100%;margin-top:14px;border:1.5px solid var(--brand);background:var(--white);color:var(--brand);
       border-radius:10px;padding:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
   /* 最近使った場所 */
@@ -77,6 +79,26 @@
   .pill{border:none;background:none;color:var(--brand);font-size:13.5px;font-weight:700;
         font-family:inherit;padding:7px 2px;cursor:pointer;margin-top:6px}
 
+  /* 会社名・出張者は、全部の出張で共通。上に1回だけ書く */
+  .people{background:var(--white);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;padding:4px 14px 12px}
+  .r-people{display:none}
+  /* 入れ終わった出張は1行に畳む */
+  .r-sum{display:none;width:100%;border:none;background:var(--white);text-align:left;font-family:inherit;
+         padding:11px 14px;cursor:pointer;align-items:center;gap:10px}
+  .row.closed .row-b{display:none}
+  .row.closed .row-h{border-bottom:none}
+  .row.closed .r-sum{display:flex;border-top:1px solid var(--line)}
+  .r-sum .s-main{flex:1;min-width:0}
+  .r-sum .s-1{display:block;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .r-sum .s-2{display:block;font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .r-sum .s-miss{color:var(--warn);font-weight:700}
+  .r-sum .s-edit{flex:none;font-size:12.5px;font-weight:700;color:var(--brand)}
+  /* いま何件・何日分か */
+  .tally{display:flex;align-items:baseline;justify-content:space-between;background:var(--white);
+         border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px}
+  .tally b{font-size:14px;color:var(--ink)}
+  .tally b em{font-style:normal;font-size:20px;color:var(--brand);margin:0 2px}
+  .tally span{font-size:11.5px;color:var(--dim)}
   .addrow{border:1.5px dashed #BFD8CB;color:var(--brand);border-radius:11px;padding:13px;
           text-align:center;font-size:14px;font-weight:700;background:var(--white);width:100%;
           font-family:inherit;cursor:pointer}
@@ -151,6 +173,15 @@
 
   <!-- 入力画面 -->
   <main class="hide" id="form">
+    <div class="people" id="people">
+      <span class="fl">会社名</span>
+      <div class="r-cos"></div>
+      <button type="button" class="pill" id="p_addco">＋ 会社を追加</button>
+      <span class="fl">出張者</span>
+      <div class="r-whos"></div>
+      <button type="button" class="pill" id="p_addwho">＋ 出張者を追加</button>
+    </div>
+    <div class="tally" id="tally"><b>今回の報告　<em id="t_n">0</em>件</b></div>
     <div id="rows"></div>
     <button type="button" class="addrow" id="addrow">＋ 出張を追加</button>
     <div class="err" id="err"></div>
@@ -171,14 +202,14 @@
 <template id="tpl_row">
   <div class="row">
     <div class="row-h"><b class="r-no"></b><button type="button" class="r-del">この出張を削除</button></div>
+    <button type="button" class="r-sum"><span class="s-main"><span class="s-1"></span><span class="s-2"></span></span><span class="s-edit">直す</span></button>
     <div class="row-b">
-      <span class="fl">会社名</span>
-      <div class="r-cos"></div>
-      <button type="button" class="pill r-addco">＋ 会社を追加</button>
-
-      <span class="fl">出張者</span>
-      <div class="r-whos"></div>
-      <button type="button" class="pill r-addwho">＋ 出張者を追加</button>
+      <div class="r-people">
+        <div class="r-cos"></div>
+        <button type="button" class="pill r-addco">＋ 会社を追加</button>
+        <div class="r-whos"></div>
+        <button type="button" class="pill r-addwho">＋ 出張者を追加</button>
+      </div>
 
       <span class="fl">出張先</span>
       <input type="text" class="r-place" placeholder="品川／ゴルフ場名／現場名">
@@ -242,6 +273,11 @@
         <button type="button" class="dfield empty l-date"></button>
       </div>
     </div>
+    <div class="l-pay hide">
+      <span class="fl">支払</span>
+      <div class="seg pay"><button type="button" class="on" data-v="個人">個人</button><button type="button" data-v="法人">法人</button><button type="button" data-v="支払なし">支払なし</button></div>
+    </div>
+    <button type="button" class="optadd l-opt hide">＋便名・発着を入力する（任意）</button>
     <div class="l-air hide">
       <div class="duo">
         <div>
@@ -262,10 +298,6 @@
         <input type="text" class="l-to" placeholder="着（伊丹）">
       </div>
       <div class="l-chips hide"><span class="chips-l">最近使った場所（タップで入力）</span><div class="chips"></div></div>
-    </div>
-    <div class="l-pay hide">
-      <span class="fl">支払</span>
-      <div class="seg pay"><button type="button" class="on" data-v="個人">個人</button><button type="button" data-v="法人">法人</button><button type="button" data-v="支払なし">支払なし</button></div>
     </div>
     <div class="l-fare hide">
       <span class="fl">金額</span>
@@ -534,6 +566,17 @@
     w.querySelector('.l-from').onfocus = function () { w._last = 'from'; };
     w.querySelector('.l-to').onfocus = function () { w._last = 'to'; };
     w.querySelector('.l-rt').onclick = function () { roundTrip(row, w); };
+    w.querySelector('.l-opt').onclick = function () {
+      var now = w.getAttribute('data-optin') === '1';
+      w.setAttribute('data-optin', now ? '' : '1');
+      routeVis(w);
+      if (now) return;
+      var list = ['.l-name', '.l-from', '.l-to'];
+      for (var i = 0; i < list.length; i++) {
+        var el = w.querySelector(list[i]);
+        if (el && el.offsetParent !== null && !val(el.value)) { try { el.focus(); } catch (e) {} break; }
+      }
+    };
     w.querySelector('.l-del').onclick = function () { w.remove(); renumberSubs(row.querySelector('.r-legs'), '移動'); };
     row.querySelector('.r-legs').appendChild(w);
     renumberSubs(row.querySelector('.r-legs'), '移動');
@@ -551,8 +594,24 @@
     var m = segVal(w.querySelector('.l-mean'));
     var pay = segVal(w.querySelector('.pay'));
     var personal = (pay === '個人');
-    var show = !!m && (!!CLS[m] || personal);
+    var optin = w.getAttribute('data-optin') === '1';
+    // 手で書いた値があれば、黙って隠さない（前回の出発地など、自動で入った値は数えない）
+    if (m && !personal && !optin) {
+      var typed = ['.l-name', '.l-from', '.l-to'].some(function (q) {
+        var el = w.querySelector(q);
+        return !!(el && val(el.value) && !el.classList.contains('auto'));
+      });
+      if (typed) { w.setAttribute('data-optin', '1'); optin = true; }
+    }
+    var open = personal || optin;
+    var show = !!m && open;
     w.querySelector('.l-route').classList.toggle('hide', !show);
+    w.querySelector('.l-air').classList.toggle('hide', !(m && CLS[m] && open));
+    var opt = w.querySelector('.l-opt');
+    if (opt) {
+      opt.classList.toggle('hide', !(m && !personal));
+      opt.textContent = optin ? '−便名・発着を閉じる' : '＋便名・発着を入力する（任意）';
+    }
     // 在来線・車を自分で立て替えたときだけ、金額を聞く
     w.querySelector('.l-fare').classList.toggle('hide', !(m && !CLS[m] && personal));
     return show;
@@ -646,6 +705,7 @@
     if (c) { setSeg(back.querySelector('.l-cls'), c); back.querySelector('.l-cls').classList.add('auto'); }
     setSeg(back.querySelector('.pay'), segVal(w.querySelector('.pay')));
     back.querySelector('.pay').setAttribute('data-touched', '1');
+    back.setAttribute('data-optin', w.getAttribute('data-optin') === '1' ? '1' : '');
     routeVis(back);   // 支払が法人などなら、帰りの発着も隠す
 
     var bf = back.querySelector('.l-from'), bt = back.querySelector('.l-to');
@@ -675,6 +735,7 @@
     el.querySelector('.w-del').onclick = function () {
       el.remove();
       trimDel(box);
+      if (row.id === 'people') { syncPeople(); return; }
       if (which === 'co') refreshBill(row);
     };
     box.appendChild(el);
@@ -694,6 +755,7 @@
     return out;
   }
   function refreshBill(row) {
+    if (!row.querySelector('.r-bill')) { syncPeople(); return; }
     var cos = coNames(row), sel = row.querySelector('.r-bill'), cur = sel.value;
     row.querySelector('.r-billbox').classList.toggle('hide', cos.length < 2);
     sel.innerHTML = '';
@@ -713,15 +775,8 @@
     var row = $('tpl_row').content.firstElementChild.cloneNode(true);
     $('rows').appendChild(row);
 
-    // 会社名・出張者：2件目以降は1件目と同じ顔ぶれを入れておく
-    var firstRow = $('rows').children[0];
-    if (firstRow && firstRow !== row) {
-      each(firstRow.querySelectorAll('.r-co'), function (el) { addLine(row, 'co', el.value); });
-      each(firstRow.querySelectorAll('.r-who'), function (el) { addLine(row, 'who', el.value); });
-    } else {
-      addLine(row, 'co', '');
-      addLine(row, 'who', myName);
-    }
+    // 会社名・出張者は、上の共通の箱から写す（画面には出さない）
+    copyPeople(row);
     row.querySelector('.r-addco').onclick = function () { addLine(row, 'co', '').focus(); refreshBill(row); };
     row.querySelector('.r-addwho').onclick = function () { addLine(row, 'who', '').focus(); };
     row.querySelector('.r-bill').onchange = function (e) {
@@ -730,7 +785,8 @@
     };
     refreshBill(row);
 
-    bindField(row.querySelector('.r-dates'), 'multi', '日付を選ぶ');
+    bindField(row.querySelector('.r-dates'), 'multi', '日付を選ぶ（何日でも選べます）');
+    row.querySelector('.r-sum').onclick = function () { openRow(row); };
 
     row.querySelector('.r-addleg').onclick = function () { addLeg(row); };
 
@@ -741,10 +797,70 @@
       file.value = '';   // 同じ写真をもう一度選べるように
     };
 
-    row.querySelector('.r-del').onclick = function () { row.remove(); renumber(); };
+    row.querySelector('.r-del').onclick = function () { row.remove(); renumber(); tally(); };
     addLeg(row);   // まずは1つだけ。帰りは「⇄ 往復にする」か「＋ 移動を追加」で足す
     renumber();
     return row;
+  }
+
+  /* ---------- 会社名・出張者は共通 ---------- */
+  function copyPeople(row) {
+    var p = $('people');
+    ['co', 'who'].forEach(function (k) {
+      var box = row.querySelector(k === 'co' ? '.r-cos' : '.r-whos');
+      box.innerHTML = '';
+      each(p.querySelectorAll(k === 'co' ? '.r-co' : '.r-who'), function (el) { addLine(row, k, el.value); });
+      if (!box.children.length) addLine(row, k, '');
+    });
+  }
+  function syncPeople() {
+    each($('rows').children, function (r) { copyPeople(r); refreshBill(r); });
+  }
+
+  /* ---------- 一括報告を楽にする ---------- */
+
+  /* 畳んだときの1行。日付・出張先・移動、2行目に会社と仕事内容 */
+  function summarize(row) {
+    var dates = getDates(row.querySelector('.r-dates'));
+    var place = val(row.querySelector('.r-place').value);
+    var means = [];
+    each(row.querySelector('.r-legs').children, function (w) {
+      var m = segVal(w.querySelector('.l-mean'));
+      if (m) means.push(m + '／' + segVal(w.querySelector('.pay')));
+    });
+    // 11/11・13・21（3件）。同じ月は日だけ並べる。多いときは先頭5日まで
+    var d = '', lastM = '';
+    dates.slice(0, 5).forEach(function (iso, i) {
+      var p = iso.split('-'), m = String(Number(p[1])), day = String(Number(p[2]));
+      d += (i ? '・' : '') + (m === lastM ? day : m + '/' + day);
+      lastM = m;
+    });
+    if (dates.length > 5) d += ' ほか' + (dates.length - 5) + '件';
+    if (dates.length > 1) d += '（' + dates.length + '件）';
+    var miss = '<span class="s-miss">';
+    var line1 = (d || miss + '日付なし</span>') + '　' + (place ? esc(place) : miss + '出張先なし</span>') +
+                (means.length ? '　' + esc(means.filter(function (v, i, a) { return a.indexOf(v) === i; }).join('・')) : '');
+    var work = val(row.querySelector('.r-work').value).split('\n')[0];
+    var line2 = work ? esc(work) : miss + '仕事内容なし</span>';
+    row.querySelector('.s-1').innerHTML = line1;
+    row.querySelector('.s-2').innerHTML = line2;
+  }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function closeRow(row) { summarize(row); row.classList.add('closed'); }
+  function openRow(row) {
+    each($('rows').children, function (r) { if (r !== row && !r.classList.contains('closed')) closeRow(r); });
+    row.classList.remove('closed');
+    row.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  function closeAll() { each($('rows').children, function (r) { closeRow(r); }); }
+
+  /* いま何件・何日分か */
+  function tally() {
+    var rows = $('rows').children, days = 0;
+    each(rows, function (r) { days += getDates(r.querySelector('.r-dates')).length; });
+    if ($('t_n')) $('t_n').textContent = days;   // 日帰りなので、1日＝1件
+    each(rows, function (r) { if (r.classList.contains('closed')) summarize(r); });
   }
 
   /* ---------- 写真 ---------- */
@@ -852,16 +968,24 @@
         }   // 在来線・車は手段だけ
         var d = w.querySelector('.l-date'), nm = w.querySelector('.l-name'), cls = w.querySelector('.l-cls');
         var fr = w.querySelector('.l-from'), to = w.querySelector('.l-to');
+        var payV = segVal(w.querySelector('.pay'));
+        var mustAir = (payV === '個人');   // 法人・支払なしは精算書に金額が出ないので、便名などは任意
+        var airOn = !w.querySelector('.l-air').classList.contains('hide');
+        var routeOn = !w.querySelector('.l-route').classList.contains('hide');
         var day = getDates(d)[0] || '';
         if (!day) bad(d, sub + 'の利用日を選んでください。');
-        if (!val(nm.value)) bad(nm, sub + 'の便名をご記入ください。');
-        if (!segVal(cls)) bad(cls, sub + 'の座席クラスを選んでください。');
-        if (!val(fr.value)) bad(fr, sub + 'の出発地をご記入ください。');
-        if (!val(to.value)) bad(to, sub + 'の到着地をご記入ください。');
-        legs.push({ k: day, m: m, detail: true, pay: segVal(w.querySelector('.pay')),
-                    s: (day ? jp(day) + wd(day) : '') + ' ' + m + ' ' +
-                    val(fr.value) + '→' + val(to.value) + ' ' + val(nm.value) + '（' + segVal(cls) + '）' +
-                    ' ／ ' + segVal(w.querySelector('.pay')) });
+        if (mustAir) {
+          if (!val(nm.value)) bad(nm, sub + 'の便名をご記入ください。');
+          if (!segVal(cls)) bad(cls, sub + 'の座席クラスを選んでください。');
+          if (!val(fr.value)) bad(fr, sub + 'の出発地をご記入ください。');
+          if (!val(to.value)) bad(to, sub + 'の到着地をご記入ください。');
+        }
+        var line = (day ? jp(day) + wd(day) : '') + ' ' + m;
+        if (routeOn && (val(fr.value) || val(to.value))) line += ' ' + val(fr.value) + '→' + val(to.value);
+        if (airOn && val(nm.value)) line += ' ' + val(nm.value);
+        if (airOn && segVal(cls)) line += '（' + segVal(cls) + '）';
+        line += ' ／ ' + payV;
+        legs.push({ k: day, m: m, detail: true, pay: payV, s: line });
       });
       if (!row.querySelector('.r-legs').children.length) bad(row.querySelector('.r-addleg'), no + 'の移動を追加してください。');
 
@@ -902,6 +1026,8 @@
     }
 
     if (first) {
+      var shut = first.el.closest && first.el.closest('.row.closed');
+      if (shut) shut.classList.remove('closed');
       first.el.scrollIntoView({ block: 'center', behavior: 'smooth' });
       return { err: first.msg };
     }
@@ -914,11 +1040,16 @@
   /* ---------- 起動 ---------- */
   function start() {
     setupCal();
+    addLine($('people'), 'co', '');
+    addLine($('people'), 'who', myName);
     addRow();
+    tally();
     // 直し始めたら、エラー表示と赤枠を消す
     document.addEventListener('input', function (e) {
       $('err').textContent = '';
       if (e.target.classList) e.target.classList.remove('bad', 'auto');
+      // 共通の会社名・出張者を書き換えたら、全部の出張に写す
+      if (e.target.closest && e.target.closest('#people')) { syncPeople(); return; }
       // 会社名を書き換えたら、交通費の請求先の選択肢も入れ替える
       if (e.target.classList && e.target.classList.contains('r-co')) {
         var r = e.target.closest('.row');
@@ -927,12 +1058,30 @@
     });
     document.addEventListener('change', function (e) { $('err').textContent = ''; if (e.target.classList) e.target.classList.remove('bad'); });
     $('addrow').onclick = function () {
+      closeAll();
       var r = addRow();
+      tally();
       r.scrollIntoView({ block: 'start', behavior: 'smooth' });
     };
+    $('p_addco').onclick = function () { addLine($('people'), 'co', '').focus(); syncPeople(); };
+    $('p_addwho').onclick = function () { addLine($('people'), 'who', '').focus(); syncPeople(); };
+    // 日付・中身が変わったら件数を数え直す
+    document.addEventListener('click', function () { setTimeout(tally, 0); });
+    document.addEventListener('input', function () { setTimeout(tally, 0); });
 
     var draft = '', draftId = '';
     $('next').onclick = function () {
+      syncPeople();
+      var pc = $('people').querySelector('.r-co'), pw = $('people').querySelector('.r-who');
+      var hasCo = [].some.call($('people').querySelectorAll('.r-co'), function (el) { return !!val(el.value); });
+      var hasWho = [].some.call($('people').querySelectorAll('.r-who'), function (el) { return !!val(el.value); });
+      if (!hasCo || !hasWho) {
+        var el = !hasCo ? pc : pw;
+        el.classList.add('bad');
+        $('err').textContent = !hasCo ? '会社名をご記入ください。' : '出張者をご記入ください。';
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        return;
+      }
       var r = build();
       $('err').textContent = r.err || '';
       if (r.err) return;
