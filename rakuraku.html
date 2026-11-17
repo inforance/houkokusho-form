@@ -300,6 +300,7 @@
   var HEADER  = '【旅費申請】';          // Code.gs が受け取る見出し（既存フォームと同じ）
   var MARK    = '（日帰り出張一括報告から送信）';   // Code.gs の isRakurakuText() が見る目印
   var PREVIEW = /[?&]preview=1/.test(location.search);  // PCでの見た目確認用（送信しない）
+  var IN_LINE = false;   // LINEの中で開いているか。PCのLINEから開くと外のブラウザになる
   // 受付先（Apps Script のウェブアプリ。LINEのWebhookと同じURL）
   var EXEC_URL = 'https://script.google.com/macros/s/AKfycbxs0WXzhbnHdfmlzjYGmGBqtN4SPxKATK18uD8O4lhX9lL9FuJ3paP775mjoQwfwDJO/exec';
 
@@ -953,6 +954,7 @@
     }
     /* 従来の送り方：トークに申請文を送る（受付カードは返信で届く） */
     function viaTalk() {
+      if (!IN_LINE) { failed('送信先につながりませんでした'); return; }   // 外のブラウザではトークに流せない
       if (draft.length > 5000) { failed('内容が長すぎます。出張を分けて送ってください'); return; }
       liff.sendMessages([{ type: 'text', text: draft }])
         .then(function () { liff.closeWindow(); })
@@ -965,7 +967,12 @@
       $('send').disabled = true;
       $('send').textContent = '送信中…';
       var closed = false, answered = false;
-      function bye() { closed = true; try { liff.closeWindow(); } catch (e) { show('送信しました。この画面を閉じてください。'); } }
+      function bye() {
+        closed = true;
+        if (IN_LINE) { try { liff.closeWindow(); return; } catch (e) {} }
+        $('confirm').classList.add('hide');
+        show('送信しました。この画面は閉じていただいて大丈夫です。');
+      }
       // 受付が終わるのを待たずに閉じる。送信は keepalive で、画面を閉じたあとも続く
       var timer = setTimeout(bye, 1200);
       fetch(EXEC_URL, {
@@ -994,8 +1001,10 @@
   }
 
   if (PREVIEW) { start(); return; }
-  liff.init({ liffId: LIFF_ID }).then(function () {
-    if (!liff.isInClient()) { show('このページはLINEアプリの中で開いてください。'); return; }
+  liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true }).then(function () {
+    try { IN_LINE = !!liff.isInClient(); } catch (e) { IN_LINE = false; }
+    // 外のブラウザ（PCのLINEから開いたときなど）は、ログインしてもらってから使う
+    if (!IN_LINE && !liff.isLoggedIn()) { liff.login(); return; }
     // 出張者の初期値にLINEの表示名を使う。取れなくても入力はできる
     liff.getProfile()
       .then(function (p) { myName = p.displayName || ''; })
