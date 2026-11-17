@@ -89,7 +89,8 @@
   #expense .segb.s-pay, #expense .segb.h-pay{display:inline-flex;gap:6px;border:none;background:none;
        border-radius:0;overflow:visible;width:auto}
   #expense .segb.s-pay button, #expense .segb.h-pay button{flex:none;border:1px solid var(--line);
-       background:var(--white);color:#56655C;border-radius:15px;padding:5px 15px;
+       background:var(--white);color:#56655C;border-radius:15px;padding:5px 0;
+       width:5.8em;text-align:center;   /* 個人・法人・支払なしを同じ大きさにそろえる */
        font-size:13px;line-height:1.5;min-height:0}
   #expense .segb.s-pay button+button, #expense .segb.h-pay button+button{border-left:1px solid var(--line)}
   #expense .segb.s-pay button.on, #expense .segb.h-pay button.on{background:var(--brand);
@@ -182,6 +183,24 @@
 .who .w-del { flex: none; border: none; background: none; color: #B26B5E; font-size: 18px;
   line-height: 1; font-family: inherit; cursor: pointer; padding: 4px 6px; }
 .xbox .add { margin: 0 0 2px; }
+/* 会社・出張者は「見出し｜入力｜＋追加」を横1行に収めて、縦に伸ばさない */
+.xbox.xwho { padding: 10px 12px; }
+.xwho .wrow { display: flex; align-items: flex-start; gap: 8px; }
+.xwho .wrow:not(:first-child) { margin-top: 8px; }
+.xwho .xlab { flex: none; width: 4.6em; margin: 0; letter-spacing: .02em; align-self: flex-start; padding-top: 13px; }
+.xwho .wlist { flex: 1; min-width: 0; }
+.xwho .who { margin-bottom: 6px; }
+.xwho .who:last-child { margin-bottom: 0; }
+.xwho .wlist > .dfield, .xwho .wlist > select, .xwho .wlist > input { width: 100%; }
+/* カードの中も「見出し｜入力」を横1行に */
+.irow { display: flex; align-items: center; gap: 8px; }
+.irow > .mini { flex: none; width: 4.4em; margin: 0 !important; }
+.irow > .segb, .irow > .two, .irow > input, .irow > .dfield { flex: 1; min-width: 0; margin: 0 !important; }
+.irow > .segb.s-pay, .irow > .segb.h-pay { flex: none; }
+/* 発「　」着「　」 */
+.irow.ft > .mini { width: auto; font-size: 13px; }
+.irow.ft > .mini + input + .mini { margin-left: 4px !important; }
+.xwho .add.wadd { flex: none; margin: 0; padding: 12px 0 0; font-size: 12.5px; white-space: nowrap; }
 .xmini { font-size: 11.5px; color: #6E7B74; margin: 10px 0 0; line-height: 1.7; }
 .xquiet { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; padding: 4px 0; border: 0;
   background: none; color: #9AA6A0; font-size: 12.5px; font-weight: 600; font-family: inherit;
@@ -300,6 +319,28 @@ body { background: #fff; }
   transition: width .35s ease; }
 .bprog .n { font-size: 12px; font-weight: 800; color: #6E7B74; flex-shrink: 0; letter-spacing: .04em; }
 
+/* 旅費申請の入力欄を少し低くする（46px → 40px）。文字の大きさは変えない */
+#expense input[type=text], #expense .dfield, #expense select { min-height: 40px; padding-top: 6px; padding-bottom: 6px; }
+#expense .meanwrap select, #expense .clswrap select { min-height: 40px; }
+#expense .farewrap .yen2 { min-height: 40px; }
+#expense .farewrap .yen2 input { min-height: 36px; padding-top: 0; padding-bottom: 0; }
+#expense .segb button { min-height: 38px; }
+#expense .rt { padding: 7px; }
+#expense .optadd { padding: 6px; }
+#expense .card { padding: 10px 12px; }
+#expense .xwho .xlab { padding-top: 11px; }
+#expense .xwho .add.wadd { padding-top: 10px; }
+#expense .xwho .wrow:not(:first-child) { margin-top: 6px; }
+#expense .xwho .who { margin-bottom: 5px; }
+/* 海外便の見積り。添付ボタンの下に、依頼は1行の文字ボタンで */
+#x_kaigai .phbtn { height: 40px; }
+#x_kaigai .ask2 { width: auto; height: auto; border: 0; background: none; padding: 6px 0 0; margin: 0;
+  font-size: 12px; white-space: nowrap; font-weight: 600; color: #0A7A45; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
+#x_kaigai .asked { margin-top: 6px; padding: 7px 10px; font-size: 12.5px; border-radius: 9px; }
+#x_kaigai .asked .nm { white-space: nowrap; }
+#x_kaigai .asked .nm small { display: inline; margin: 0 0 0 6px; }
+/* 座席クラスの高さを便名にそろえる */
+#expense .duo .clswrap { margin: 4px 0 0; }
 </style>
 </head>
 <body>
@@ -318,14 +359,17 @@ body { background: #fff; }
 
       <!-- 出張者 -->
       <span class="fl">出張者</span>
-      <div class="xbox">
-        <div class="xlab">会社</div>
-        <div id="x_cos"></div>
-        <button type="button" class="add" id="x_coAdd">＋ 会社を追加</button>
-
-        <div class="xlab">出張者</div>
-        <div id="x_pes"></div>
-        <button type="button" class="add" id="x_peAdd">＋ 出張者を追加</button>
+      <div class="xbox xwho">
+        <div class="wrow">
+          <div class="xlab">会社</div>
+          <div class="wlist" id="x_cos"></div>
+          <button type="button" class="add wadd" id="x_coAdd" aria-label="会社を追加">＋追加</button>
+        </div>
+        <div class="wrow">
+          <div class="xlab">出張者</div>
+          <div class="wlist" id="x_pes"></div>
+          <button type="button" class="add wadd" id="x_peAdd" aria-label="出張者を追加">＋追加</button>
+        </div>
       </div>
 
       <!-- 費用の負担（会社が2社以上のときだけ出す） -->
@@ -340,26 +384,34 @@ body { background: #fff; }
       </div>
 
       <span class="fl">出張の内容</span>
-      <div class="xbox">
-        <div class="xlab">出張期間</div>
-        <button type="button" class="dfield empty" id="e_period">日付を選ぶ</button>
-
-        <div class="xlab">出張区分</div>
-        <select id="x_kubun">
-          <option value="">出張区分を選ぶ</option>
-          <option>近距離出張</option>
-          <option>遠距離出張</option>
-          <option>海外出張</option>
-        </select>
-
-        <div id="x_kaigai" class="hide">
-          <div class="xlab">海外便の見積り</div>
-          <div class="phwrap" id="x_mitsu" data-btn="見積りを添付"></div>
-          <div id="x_ask"></div>
+      <div class="xbox xwho">
+        <div class="wrow">
+          <div class="xlab">出張期間</div>
+          <div class="wlist"><button type="button" class="dfield empty" id="e_period">日付を選ぶ</button></div>
         </div>
 
-        <div class="xlab">出張先</div>
-        <input type="text" id="e_place" placeholder="品川／ゴルフ場名／現場名">
+        <div class="wrow">
+          <div class="xlab">出張区分</div>
+          <div class="wlist"><select id="x_kubun">
+            <option value="">出張区分を選ぶ</option>
+            <option>近距離出張</option>
+            <option>遠距離出張</option>
+            <option>海外出張</option>
+          </select></div>
+        </div>
+
+        <div id="x_kaigai" class="wrow hide">
+          <div class="xlab">見積り</div>
+          <div class="wlist">
+            <div class="phwrap" id="x_mitsu" data-btn="海外便の見積りを添付"></div>
+            <div id="x_ask"></div>
+          </div>
+        </div>
+
+        <div class="wrow">
+          <div class="xlab">出張先</div>
+          <div class="wlist"><input type="text" id="e_place" placeholder="品川／ゴルフ場名"></div>
+        </div>
       </div>
 
       <span class="fl">移動</span>
@@ -373,7 +425,7 @@ body { background: #fff; }
         <button type="button" class="add" id="e_addstay">＋ 宿泊を追加</button>
       </div>
 
-      <span class="fl">証憑</span>
+      <span class="fl">写真添付</span>
       <div class="phwrap" id="e_photo" data-btn="搭乗券・領収書などを添付"></div>
     </div>
 
@@ -465,9 +517,9 @@ body { background: #fff; }
     '飛行機': ['エコノミー', 'クラスJ', 'プレミアムエコノミー', 'ビジネス', 'ファースト'],
     '新幹線': ['自由席', '指定席', 'グリーン', 'グランクラス']
   };
-  var FROM_PH = { '飛行機': ['発（羽田）', '着（伊丹）'], '新幹線': ['発（東京）', '着（新大阪）'],
-                  '在来線': ['発（品川）', '着（新宿）'], 'タクシー': ['発（駅）', '着（現場）'],
-                  'バス': ['発（駅）', '着（現場）'], '車': ['発（自宅）', '着（現場）'] };
+  var FROM_PH = { '飛行機': ['羽田', '伊丹'], '新幹線': ['東京', '新大阪'],
+                  '在来線': ['品川', '新宿'], 'タクシー': ['駅', '現場'],
+                  'バス': ['駅', '現場'], '車': ['自宅', '現場'] };
   var MARU = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
 
   var $ = function (id) { return document.getElementById(id); };
@@ -564,6 +616,8 @@ body { background: #fff; }
     if (!f) { el.textContent = el.getAttribute('data-ph') || '日付を選ぶ'; return; }
     if (el.getAttribute('data-kind') === 'one') { el.textContent = mdOnly(f); return; }   // 欄が狭いので年は出さない
     if (!t || t === f) el.textContent = jp(f) + (el.getAttribute('data-kind') === 'trip' ? '（日帰り）' : '');
+    else if ((el.id === 'e_period' || el.classList.contains('h-period')) && f.slice(0, 4) === t.slice(0, 4) && f.slice(0, 4) === String(new Date().getFullYear()))
+      el.textContent = mdOnly(f) + ' 〜 ' + mdOnly(t);   // 今年の出張は年を省く（欄が狭いので）
     else el.textContent = jp(f) + ' 〜 ' + jp(t);
   }
 
@@ -693,15 +747,14 @@ body { background: #fff; }
         '<div class="s-daybox hide"><span class="mini">利用日</span>' +
           '<button type="button" class="dfield empty s-date"></button></div>' +
       '</div>' +
-      '<span class="mini">支払</span>' +
-      '<div class="segb s-pay"></div>' +
+      '<div class="irow"><span class="mini">支払</span><div class="segb s-pay"></div></div>' +
       '<div class="s-air hide"><div class="duo">' +
         '<div><span class="mini">便名</span><input type="text" class="s-name" placeholder="JAL〇〇便"></div>' +
         '<div><span class="mini s-clsl">座席クラス</span><div class="segb s-cls"></div></div>' +
       '</div></div>' +
-      '<div class="s-routebox hide"><span class="mini">発着</span>' +
-        '<div class="two"><input type="text" class="s-from" placeholder="発（羽田）">' +
-        '<span>→</span><input type="text" class="s-to" placeholder="着（伊丹）"></div>' +
+      '<div class="s-routebox hide"><div class="duo">' +
+        '<div><span class="mini">発</span><input type="text" class="s-from" placeholder="羽田"></div>' +
+        '<div><span class="mini">着</span><input type="text" class="s-to" placeholder="伊丹"></div></div>' +
         '<div class="s-chips hide"><span class="chips-l">最近使った場所（タップで入力）</span><div class="chips"></div></div>' +
       '</div>' +
       '<button type="button" class="rt s-rt hide">⇄ 往復にする（帰りを自動入力）</button>';
@@ -757,7 +810,7 @@ body { background: #fff; }
       name.value = '';
       cls.innerHTML = '';
     }
-    var ph = FROM_PH[m] || ['発', '着'];
+    var ph = FROM_PH[m] || ['', ''];
     w.querySelector('.s-from').placeholder = ph[0];
     w.querySelector('.s-to').placeholder = ph[1];
     drawChips(w, m);
@@ -837,15 +890,14 @@ body { background: #fff; }
     w.className = 'card';
     w.innerHTML =
       '<div class="card-h"><b></b><button type="button">削除</button></div>' +
-      '<button type="button" class="dfield empty h-period"></button>' +
-      '<span class="mini">支払</span>' +
-      '<div class="segb h-pay"></div>' +
-      '<span class="mini h-namel">ホテル名</span>' +
-      '<input type="text" class="h-name" placeholder="ヒルトン大阪">';
+      '<div class="irow"><span class="mini">宿泊期間</span><button type="button" class="dfield empty h-period"></button></div>' +
+      '<div class="irow"><span class="mini">支払</span><div class="segb h-pay"></div></div>' +
+      '<div class="irow h-row"><span class="mini h-namel">ホテル名</span>' +
+      '<input type="text" class="h-name" placeholder="ヒルトン大阪"></div>';
     var pay = w.querySelector('.h-pay');
     segButtons(pay, PAY);
     setSeg(pay, '個人');
-    bindField(w.querySelector('.h-period'), 'stay', '宿泊期間を選ぶ');
+    bindField(w.querySelector('.h-period'), 'stay', '日付を選ぶ');
     w.querySelector('.card-h button').onclick = function () {
       w.remove();
       renumber($('e_stays'), '宿泊');
@@ -1869,6 +1921,8 @@ body { background: #fff; }
     nm.classList.toggle('hide', !(personal || optin));
     var nml = card.querySelector('.h-namel');
     if (nml) nml.classList.toggle('hide', !(personal || optin));
+    var hrow = card.querySelector('.h-row');
+    if (hrow) hrow.classList.toggle('hide', !(personal || optin));
     var opt = card.querySelector('.h-opt');
     if (opt) {
       opt.classList.toggle('hide', personal);
@@ -1885,6 +1939,7 @@ body { background: #fff; }
     b.className = 'optadd hide ' + cls;
     b.textContent = seg ? '＋便名・発着を入力する（任意）' : '＋宿泊先を入力する（任意）';
     var anchor = card.querySelector(seg ? '.s-pay' : '.h-pay');
+    if (anchor && anchor.parentNode && anchor.parentNode.classList.contains('irow')) anchor = anchor.parentNode;
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(b, anchor.nextSibling);
     else card.appendChild(b);
     b.onclick = function () {
@@ -1989,12 +2044,11 @@ body { background: #fff; }
     var box = $('x_ask');
     if (!box) return;
     if (asked) {
-      box.innerHTML = '<div class="asked"><span>\u2713</span><span class="nm">見積りの取得を依頼しました' +
-        '<small>1,000円（税込）／ 1出張あたり</small></span><span class="x">取り消す</span></div>';
+      box.innerHTML = '<div class="asked"><span>\u2713</span><span class="nm">取得を依頼済み' +
+        '<small>税込1,000円</small></span><span class="x">取り消す</span></div>';
       box.querySelector('.x').onclick = function () { asked = false; askBox(); };
     } else {
-      box.innerHTML = '<button type="button" class="ask2">見積りの取得を依頼する</button>' +
-        '<p class="fee">※1出張あたり 1,000円（税込）かかります</p>';
+      box.innerHTML = '<button type="button" class="ask2">見積りの取得を依頼する（税込1,000円）</button>';
       box.querySelector('.ask2').onclick = function () { asked = true; askBox(); };
     }
   }
