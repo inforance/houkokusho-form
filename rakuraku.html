@@ -392,7 +392,30 @@
     try { var o = JSON.parse(localStorage.getItem(MEM_KEY) || '{}') || {}; o.places = o.places || {}; o.lastFrom = o.lastFrom || {}; return o; }
     catch (e) { return { places: {}, lastFrom: {} }; }
   })();
+  /* 会社名・出張者も覚えておく。出張報告のフォームと同じ置き場所なので、どちらで入れても次回に出る */
+  var PEOPLE_KEY = 'houkoku_people_v1';
+  function people() {
+    try {
+      var o = JSON.parse(localStorage.getItem(PEOPLE_KEY) || '{}') || {};
+      o.co = o.co || []; o.pe = o.pe || []; o.me = o.me || '';
+      return o;
+    } catch (e) { return { co: [], pe: [], me: '' }; }
+  }
+  function rememberPeople() {
+    var o = people();
+    var pick = function (sel) {
+      var out = [];
+      each($('people').querySelectorAll(sel), function (el) { var v = val(el.value); if (v && out.indexOf(v) < 0) out.push(v); });
+      return out;
+    };
+    pick('.r-co').reverse().forEach(function (n) { o.co = [n].concat(o.co.filter(function (x) { return x !== n; })); });
+    pick('.r-who').reverse().forEach(function (n) { o.pe = [n].concat(o.pe.filter(function (x) { return x !== n; })); });
+    o.co = o.co.slice(0, 12); o.pe = o.pe.slice(0, 12);
+    try { localStorage.setItem(PEOPLE_KEY, JSON.stringify(o)); } catch (e) {}
+  }
+
   function remember() {
+    rememberPeople();
     each($('rows').children, function (row) {
       each(row.querySelector('.r-legs').children, function (w, i) {
         var m = segVal(w.querySelector('.l-mean'));
@@ -1066,8 +1089,9 @@
   /* ---------- 起動 ---------- */
   function start() {
     setupCal();
-    addLine($('people'), 'co', '');
-    addLine($('people'), 'who', myName);
+    var pp = people();   // 前回入れた会社名・出張者（出張報告のフォームで入れたものも含む）
+    addLine($('people'), 'co', pp.co[0] || '');
+    addLine($('people'), 'who', pp.pe[0] || myName || pp.me || '');
     addRow();
     tally();
     // 直し始めたら、エラー表示と赤枠を消す
