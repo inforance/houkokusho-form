@@ -375,7 +375,7 @@
   };
   var NAME_PH = { '飛行機': 'JAL〇〇便', '新幹線': 'のぞみ〇〇号' };
   var FROM_PH = { '飛行機': ['羽田', '伊丹'], '新幹線': ['東京', '新大阪'],
-                  '在来線': ['品川', '新宿'], '車': ['自宅', '現場'] };
+                  '在来線': ['品川', '新宿'] };   // 車は例を出さない（空欄）
 
   var $ = function (id) { return document.getElementById(id); };
   var val = function (s) { return String(s == null ? '' : s).trim(); };
@@ -683,7 +683,7 @@
     w.querySelector('.l-pay').classList.toggle('hide', !m);        // 支払もどの手段でも
     if (w.parentNode) renumberSubs(w.parentNode, '移動');
     if (m) {
-      var ph = FROM_PH[m] || ['発', '着'];
+      var ph = FROM_PH[m] || ['', ''];
       w.querySelector('.l-from').placeholder = ph[0];
       w.querySelector('.l-to').placeholder = ph[1];
       drawChips(w, m);

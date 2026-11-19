@@ -343,6 +343,12 @@ body { background: #fff; }
 #expense .duo .clswrap { margin: 4px 0 0; }
 /* iPhoneは16px未満の入力欄を押すと画面を拡大するので、AIへの返事欄・完成文も16pxに */
 #c_ans, #c_out { font-size: 16px; }
+/* 日当の支給日数 */
+.nitto { display: flex; align-items: center; gap: 8px; }
+#expense .nitto input[type=text] { width: 72px; text-align: center; }
+#expense .nitto input.changed { border-color: #0A7A45; background: #F2F8F4; }
+.nitto span { font-size: 14px; color: #56655C; }
+.nitto .nitto-all { font-size: 12px; color: #9AA6A0; }
 </style>
 </head>
 <body>
@@ -390,6 +396,15 @@ body { background: #fff; }
         <div class="wrow">
           <div class="xlab">出張期間</div>
           <div class="wlist"><button type="button" class="dfield empty" id="e_period">日付を選ぶ</button></div>
+        </div>
+
+        <!-- 日当の支給日数。最初は出張期間の全日。一部の日だけにしたいときは書き換える -->
+        <div class="wrow hide" id="x_nittoRow">
+          <div class="xlab">日当</div>
+          <div class="wlist"><div class="nitto">
+            <input type="text" id="x_nitto" inputmode="numeric" autocomplete="off">
+            <span>日分</span><span class="nitto-all" id="x_nittoAll"></span>
+          </div></div>
         </div>
 
         <div class="wrow">
@@ -520,8 +535,7 @@ body { background: #fff; }
     '新幹線': ['自由席', '指定席', 'グリーン', 'グランクラス']
   };
   var FROM_PH = { '飛行機': ['羽田', '伊丹'], '新幹線': ['東京', '新大阪'],
-                  '在来線': ['品川', '新宿'], 'タクシー': ['駅', '現場'],
-                  'バス': ['駅', '現場'], '車': ['自宅', '現場'] };
+                  '在来線': ['品川', '新宿'] };   // タクシー・バス・車は例を出さない（空欄）
   var MARU = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
 
   var $ = function (id) { return document.getElementById(id); };
@@ -909,10 +923,38 @@ body { background: #fff; }
     syncDates();
   }
 
+  /* 日当の支給日数。出張期間が変わったら全日に戻す。手で直した日数はそのまま */
+  var nittoKey = '';
+  function nittoTotal() { var r = tripRange(); return r.from ? days(r.from, r.to).length : 0; }
+  function nittoSync(r) {
+    var row = $('x_nittoRow'), inp = $('x_nitto');
+    if (!row || !inp) return;
+    var total = days(r.from, r.to).length;
+    var key = r.from + '_' + r.to;
+    row.classList.remove('hide');
+    $('x_nittoAll').textContent = '（出張期間 ' + total + '日）';
+    if (key !== nittoKey) { nittoKey = key; inp.value = String(total); inp.classList.remove('changed'); }
+  }
+  function nittoValue() {
+    var inp = $('x_nitto'), total = nittoTotal();
+    var v = inp ? String(inp.value || '').replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 65248); }).trim() : '';
+    if (v === '') return { n: total, total: total };
+    if (!/^\d+$/.test(v)) return { err: true, total: total };
+    var n = Number(v);
+    return (n > total) ? { err: true, total: total } : { n: n, total: total };
+  }
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.id === 'x_nitto') {
+      var x = nittoValue();
+      e.target.classList.toggle('changed', !x.err && x.n !== x.total);
+    }
+  });
+
   /* 出張期間を決めたら、空いているところに初期値を入れる。手で直せる */
   function syncDates() {
     var r = tripRange();
     if (!r.from) return;
+    nittoSync(r);
 
     // 日帰りなら宿泊の欄は出さない。泊まりなら出して、1件目を用意する
     var overnight = r.to !== r.from;
@@ -955,6 +997,10 @@ body { background: #fff; }
     var L = ['【旅費申請】'];
     (window.__xHead || function () { return []; })().forEach(function (s) { L.push(s); });
     L.push('出張期間：' + (r.to === r.from ? jp(r.from) + '（日帰り）' : jp(r.from) + '〜' + jp(r.to)));
+    // 日当：全日なら書かない（いつもどおり全日で計上）。減らしたときだけ書く
+    var nt = nittoValue();
+    if (nt.err) return { err: '日当の日数は、0〜' + nt.total + 'の数字で入力してください。' };
+    if (nt.n !== nt.total) L.push('日当の支給日数：' + nt.n + '日（出張期間' + nt.total + '日のうち）');
     L.push('出張先：' + place);
 
     var segs = [];
