@@ -300,6 +300,8 @@
           <option value="飛行機">飛行機</option>
           <option value="新幹線">新幹線</option>
           <option value="在来線">在来線</option>
+          <option value="タクシー">タクシー</option>
+          <option value="バス">バス</option>
           <option value="車">車</option>
         </select>
       </div>
@@ -375,7 +377,7 @@
   };
   var NAME_PH = { '飛行機': 'JAL〇〇便', '新幹線': 'のぞみ〇〇号' };
   var FROM_PH = { '飛行機': ['羽田', '伊丹'], '新幹線': ['東京', '新大阪'],
-                  '在来線': ['品川', '新宿'] };   // 車は例を出さない（空欄）
+                  '在来線': ['品川', '新宿'] };   // タクシー・バス・車は例を出さない（空欄）
 
   var $ = function (id) { return document.getElementById(id); };
   var val = function (s) { return String(s == null ? '' : s).trim(); };
