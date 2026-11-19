@@ -63,6 +63,36 @@
   .submit:disabled{background:#A9BFB4}
   .err{color:var(--warn);font-size:13px;margin-top:12px;text-align:center;min-height:1em}
   .bad{outline:2px solid var(--warn) !important;outline-offset:-2px}
+
+  /* 日付を選ぶボタン（タップでカレンダー） */
+  .dfield{width:100%;border:1px solid var(--line);border-radius:9px;padding:7px 28px 7px 12px;min-height:40px;
+          font-size:16px;font-family:inherit;color:var(--ink);background:var(--white);text-align:left;line-height:1.6;
+          cursor:pointer;position:relative;display:block;white-space:nowrap;overflow:hidden}
+  .dfield.empty{color:#AEB8B1}
+  .dfield:after{content:'';position:absolute;right:11px;top:50%;width:13px;height:13px;margin-top:-8px;border:1.6px solid var(--dim);border-radius:2px}
+  .dfield:before{content:'';position:absolute;right:13px;top:50%;width:9px;height:1.6px;margin-top:-4px;background:var(--dim);z-index:1}
+
+  /* カレンダー */
+  .sheet{position:fixed;inset:0;background:rgba(20,30,25,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+  .sheet-in{background:var(--white);width:100%;max-width:560px;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+  .cal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .cal-h b{font-size:15px}
+  .cal-h button{border:none;background:var(--brand-lt);color:var(--brand);width:38px;height:38px;border-radius:19px;font-size:20px;line-height:1;font-family:inherit;cursor:pointer}
+  .cal-w,.cal-g{display:grid;grid-template-columns:repeat(7,1fr)}
+  .cal-w span{text-align:center;font-size:11px;color:var(--dim);padding-bottom:4px}
+  .cal-w span:first-child{color:#C4726A}
+  .cal-w span:last-child{color:#6A86C4}
+  .cd{height:42px;display:flex;align-items:center;justify-content:center;font-size:14.5px;cursor:pointer;border-radius:21px;margin:1px 2px}
+  .cd.empty{cursor:default}
+  .cd.past{color:#C9D1CC}
+  .cd.on{background:var(--brand);color:#fff;font-weight:700}
+  .cal-sel{text-align:center;font-size:13px;color:var(--dim);margin:12px 0 10px;min-height:22px}
+  .cal-sel b{color:var(--ink);font-size:14.5px}
+  .cal-btns{display:flex;gap:9px}
+  .cal-btns button{flex:1;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
+  #cal_cancel{background:#EEF1EF;color:#56655C}
+  #cal_ok{background:var(--brand);color:#fff}
+  #cal_ok:disabled{background:#A9BFB4}
   .hint{font-size:11.5px;color:var(--dim);margin-top:9px;text-align:center;line-height:1.6}
 </style>
 </head>
@@ -100,12 +130,12 @@
   <div class="leg">
     <div class="leg-h"><b class="no"></b><button type="button" class="del">削除</button></div>
     <div class="duo">
-      <div><span class="fl">搭乗日</span><input type="date" class="day empty"></div>
-      <div><span class="fl">便名</span><input type="text" class="flt" placeholder="JL1" autocomplete="off" autocapitalize="characters"></div>
+      <div><span class="fl">搭乗日</span><button type="button" class="dfield day empty">日付を選ぶ</button></div>
+      <div><span class="fl">便名</span><input type="text" class="flt" placeholder="JL079" autocomplete="off" autocapitalize="characters"></div>
     </div>
     <div class="duo row2">
       <div><span class="fl">出発地</span><input type="text" class="from" placeholder="羽田" autocomplete="off"></div>
-      <div><span class="fl">到着地</span><input type="text" class="to" placeholder="ロンドン" autocomplete="off"></div>
+      <div><span class="fl">到着地</span><input type="text" class="to" placeholder="ホーチミン" autocomplete="off"></div>
     </div>
     <div class="row2"><span class="fl" style="margin-bottom:4px">座席クラス</span>
       <select class="cls empty">
@@ -118,6 +148,24 @@
     </div>
   </div>
 </template>
+
+<!-- カレンダー -->
+<div class="sheet hide" id="cal">
+  <div class="sheet-in">
+    <div class="cal-h">
+      <button type="button" id="cal_prev">‹</button>
+      <b id="cal_title"></b>
+      <button type="button" id="cal_next">›</button>
+    </div>
+    <div class="cal-w"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+    <div class="cal-g" id="cal_g"></div>
+    <div class="cal-sel" id="cal_sel"></div>
+    <div class="cal-btns">
+      <button type="button" id="cal_cancel">やめる</button>
+      <button type="button" id="cal_ok">決定</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
@@ -183,7 +231,7 @@
   function addLeg() {
     var w = $('tpl_leg').content.firstElementChild.cloneNode(true);
     var day = w.querySelector('.day'), cls = w.querySelector('.cls'), flt = w.querySelector('.flt');
-    day.addEventListener('change', function () { day.classList.toggle('empty', !day.value); });
+    day.onclick = function () { openCal(day); };
     cls.addEventListener('change', function () { cls.classList.toggle('empty', !cls.value); });
     flt.addEventListener('input', function () { flt.value = flt.value.toUpperCase(); });
     // 2便目以降は、前の便の座席クラスを引き継ぐ
@@ -202,6 +250,58 @@
     return m[1] + '年' + Number(m[2]) + '月' + Number(m[3]) + '日（' + w + '）';
   }
 
+  /* ---------- カレンダー（搭乗日を1日選ぶ） ---------- */
+  var cal = { field: null, picked: '', cur: new Date() };
+  function p2(n) { return ('0' + n).slice(-2); }
+  function short(iso) {
+    var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return '';
+    var w = ['日', '月', '火', '水', '木', '金', '土'][new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay()];
+    var y = (Number(m[1]) !== new Date().getFullYear()) ? m[1] + '年' : '';
+    return y + Number(m[2]) + '月' + Number(m[3]) + '日（' + w + '）';
+  }
+  function openCal(el) {
+    cal.field = el;
+    cal.picked = el.getAttribute('data-iso') || '';
+    var base = cal.picked ? new Date(cal.picked + 'T00:00:00') : new Date();
+    cal.cur = new Date(base.getFullYear(), base.getMonth(), 1);
+    drawCal();
+    $('cal').classList.remove('hide');
+  }
+  function drawCal() {
+    var y = cal.cur.getFullYear(), mo = cal.cur.getMonth();
+    $('cal_title').textContent = y + '年' + (mo + 1) + '月';
+    var head = new Date(y, mo, 1).getDay(), last = new Date(y, mo + 1, 0).getDate();
+    var t = new Date(), today = t.getFullYear() + '-' + p2(t.getMonth() + 1) + '-' + p2(t.getDate());
+    var g = $('cal_g'); g.innerHTML = '';
+    for (var i = 0; i < head; i++) { var b = document.createElement('div'); b.className = 'cd empty'; g.appendChild(b); }
+    for (var d = 1; d <= last; d++) {
+      var iso = y + '-' + p2(mo + 1) + '-' + p2(d);
+      var c = document.createElement('div');
+      c.className = 'cd' + (iso < today ? ' past' : '') + (cal.picked === iso ? ' on' : '');
+      c.textContent = d;
+      c.setAttribute('data-iso', iso);
+      c.onclick = function () { cal.picked = this.getAttribute('data-iso'); drawCal(); };
+      g.appendChild(c);
+    }
+    $('cal_sel').innerHTML = cal.picked ? '<b>' + short(cal.picked) + '</b>' : '搭乗日を選んでください';
+    $('cal_ok').disabled = !cal.picked;
+  }
+  function setupCal() {
+    $('cal_prev').onclick = function () { cal.cur.setMonth(cal.cur.getMonth() - 1); drawCal(); };
+    $('cal_next').onclick = function () { cal.cur.setMonth(cal.cur.getMonth() + 1); drawCal(); };
+    $('cal_cancel').onclick = function () { $('cal').classList.add('hide'); };
+    $('cal').onclick = function (e) { if (e.target === $('cal')) $('cal').classList.add('hide'); };
+    $('cal_ok').onclick = function () {
+      if (!cal.picked) return;
+      var el = cal.field;
+      el.setAttribute('data-iso', cal.picked);
+      el.textContent = short(cal.picked);
+      el.classList.remove('empty', 'bad');
+      $('cal').classList.add('hide');
+    };
+  }
+
   /* 送る文を作る。足りない欄は赤枠で止める */
   function build() {
     each(document.querySelectorAll('.bad'), function (el) { el.classList.remove('bad'); });
@@ -212,8 +312,8 @@
     each($('legs').children, function (w) {
       var d = w.querySelector('.day'), f = w.querySelector('.flt'), c = w.querySelector('.cls');
       var a = w.querySelector('.from'), t = w.querySelector('.to');
-      [[d, d.value], [f, val(f.value)], [a, val(a.value)], [t, val(t.value)], [c, c.value]].forEach(function (p) { if (!p[1]) { p[0].classList.add('bad'); miss = miss || p[0]; } });
-      legs.push(jp(d.value) + '　' + val(f.value).replace(/\s+/g, '') + '　' + val(a.value) + '→' + val(t.value) + '　' + c.value);
+      [[d, d.getAttribute('data-iso')], [f, val(f.value)], [a, val(a.value)], [t, val(t.value)], [c, c.value]].forEach(function (p) { if (!p[1]) { p[0].classList.add('bad'); miss = miss || p[0]; } });
+      legs.push(jp(d.getAttribute('data-iso')) + '　' + val(f.value).replace(/\s+/g, '') + '　' + val(a.value) + '→' + val(t.value) + '　' + c.value);
     });
     if (miss) { try { miss.focus(); } catch (e) {} return { err: '搭乗日・便名・出発地・到着地・座席クラスをすべて入れてください。' }; }
     var L = ['【国際線見積り依頼】'];
@@ -225,6 +325,7 @@
   }
 
   function start() {
+    setupCal();
     var pp = people();
     addLine('cos', pp.co[0] || '', '会社名');
     addLine('pes', pp.pe[0] || myName || pp.me || '', '氏名');
