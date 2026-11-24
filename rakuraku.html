@@ -16,6 +16,14 @@
   header h1{font-size:17px;font-weight:700}
   main{padding:14px 16px}
   .msg{margin:18px;padding:14px;border-radius:10px;background:#FBEDE9;color:#8C4A3C;font-size:13.5px}
+  /* 送信後の表示：送信ボタンの場所に出す（PCなど、画面を自動で閉じられないとき） */
+  .sent-box{display:flex;gap:12px;align-items:center;background:var(--brand-lt);border:1px solid #CFE3D7;
+            border-radius:12px;padding:16px;margin-top:12px}
+  .sent-ck{width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;display:flex;
+           align-items:center;justify-content:center;font-size:20px;font-weight:700;flex:none}
+  .sent-box b{display:block;font-size:16px;color:var(--brand);line-height:1.4}
+  .sent-box p{font-size:13.5px;font-weight:700;color:#2F5A49;margin:0}
+  body.sent main{pointer-events:none}
   .hide{display:none !important}
 
   /* 1枠＝1件の出張 */
@@ -1087,6 +1095,19 @@
     return { text: L.join('\n') };
   }
 
+  /* 送信できたら、押した送信ボタンの場所に「送信しました／このタブを閉じてください」を出す。
+     PCのブラウザでは画面を自動で閉じられず、上に出す案内だと下にいる人が気づけないため */
+  function sentHere() {
+    var btn = null;
+    ['send', 'c_send'].forEach(function (id) { var b = document.getElementById(id); if (!btn && b && b.offsetParent) btn = b; });
+    var box = document.createElement('div');
+    box.className = 'sent-box';
+    box.innerHTML = '<span class="sent-ck">✓</span><div><b>送信しました</b><p>このタブを閉じてください。</p></div>';
+    if (btn) { btn.parentNode.insertBefore(box, btn); btn.classList.add('hide'); }
+    else { var m = document.querySelector('main') || document.body; m.appendChild(box); }
+    document.body.classList.add('sent');
+    try { box.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { box.scrollIntoView(); }
+  }
   function show(t) { var m = $('msg'); m.textContent = t; m.classList.remove('hide'); }
 
   /* ---------- 起動 ---------- */
@@ -1172,8 +1193,7 @@
       function bye() {
         closed = true;
         if (IN_LINE) { try { liff.closeWindow(); return; } catch (e) {} }
-        $('confirm').classList.add('hide');
-        show('送信しました。この画面は閉じていただいて大丈夫です。');
+        sentHere();
       }
       // 受付が終わるのを待たずに閉じる。送信は keepalive で、画面を閉じたあとも続く
       var timer = setTimeout(bye, 1200);
