@@ -267,8 +267,7 @@
   function jp(iso) {
     var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!m) return '';
-    var w = ['日', '月', '火', '水', '木', '金', '土'][new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay()];
-    return m[1] + '年' + Number(m[2]) + '月' + Number(m[3]) + '日（' + w + '）';
+    return m[1] + '年' + Number(m[2]) + '月' + Number(m[3]) + '日';   // 曜日は付けない
   }
 
   /* ---------- カレンダー（搭乗日を1日選ぶ） ---------- */
@@ -277,9 +276,8 @@
   function short(iso) {
     var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!m) return '';
-    var w = ['日', '月', '火', '水', '木', '金', '土'][new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay()];
     var y = (Number(m[1]) !== new Date().getFullYear()) ? m[1] + '年' : '';
-    return y + Number(m[2]) + '月' + Number(m[3]) + '日（' + w + '）';
+    return y + Number(m[2]) + '月' + Number(m[3]) + '日';   // 曜日は付けない
   }
   function openCal(el) {
     cal.field = el;
@@ -323,6 +321,12 @@
     };
   }
 
+  /* 便名をそろえる：全角→半角・大文字、空白なし（例：ｊｌ　０７９ → JL079） */
+  function fltNorm(s) {
+    return String(s || '').replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (ch) { return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0); })
+      .replace(/[\s　]+/g, '').toUpperCase();
+  }
+
   /* 送る文を作る。足りない欄は赤枠で止める */
   function build() {
     each(document.querySelectorAll('.bad'), function (el) { el.classList.remove('bad'); });
@@ -334,7 +338,7 @@
       var d = w.querySelector('.day'), f = w.querySelector('.flt'), c = w.querySelector('.cls');
       var a = w.querySelector('.from'), t = w.querySelector('.to');
       [[d, d.getAttribute('data-iso')], [f, val(f.value)], [a, val(a.value)], [t, val(t.value)], [c, c.value]].forEach(function (p) { if (!p[1]) { p[0].classList.add('bad'); miss = miss || p[0]; } });
-      legs.push(jp(d.getAttribute('data-iso')) + '　' + val(f.value).replace(/\s+/g, '') + '　' + val(a.value) + '→' + val(t.value) + '　' + c.value);
+      legs.push(jp(d.getAttribute('data-iso')) + '　' + fltNorm(val(f.value)) + '　' + val(a.value) + '→' + val(t.value) + '　' + c.value);
     });
     if (miss) { try { miss.focus(); } catch (e) {} return { err: '搭乗日・便名・出発地・到着地・座席クラスをすべて入れてください。' }; }
     var L = ['【国際線見積り依頼】'];
